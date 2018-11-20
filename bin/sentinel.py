@@ -5,7 +5,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), '../lib
 import init
 import config
 import misc
-from terracoind import TerracoinDaemon
+from zcored import ZCoreDaemon
 from models import Superblock, Proposal, GovernanceObject, Watchdog
 from models import VoteSignals, VoteOutcomes, Transient
 import socket
@@ -19,22 +19,22 @@ from scheduler import Scheduler
 import argparse
 
 
-# sync terracoind gobject list with our local relational DB backend
-def perform_terracoind_object_sync(terracoind):
-    GovernanceObject.sync(terracoind)
+# sync zcored gobject list with our local relational DB backend
+def perform_zcored_object_sync(zcored):
+    GovernanceObject.sync(zcored)
 
 
 # delete old watchdog objects, create new when necessary
-def watchdog_check(terracoind):
+def watchdog_check(zcored):
     printdbg("in watchdog_check")
 
     # delete expired watchdogs
-    for wd in Watchdog.expired(terracoind):
+    for wd in Watchdog.expired(zcored):
         printdbg("\tFound expired watchdog [%s], voting to delete" % wd.object_hash)
-        wd.vote(terracoind, VoteSignals.delete, VoteOutcomes.yes)
+        wd.vote(zcored, VoteSignals.delete, VoteOutcomes.yes)
 
     # now, get all the active ones...
-    active_wd = Watchdog.active(terracoind)
+    active_wd = Watchdog.active(zcored)
     active_count = active_wd.count()
 
     # none exist, submit a new one to the network
@@ -42,7 +42,7 @@ def watchdog_check(terracoind):
         # create/submit one
         printdbg("\tNo watchdogs exist... submitting new one.")
         wd = Watchdog(created_at=int(time.time()))
-        wd.submit(terracoind)
+        wd.submit(zcored)
 
     else:
         wd_list = sorted(active_wd, key=lambda wd: wd.object_hash)
@@ -50,35 +50,36 @@ def watchdog_check(terracoind):
         # highest hash wins
         winner = wd_list.pop()
         printdbg("\tFound winning watchdog [%s], voting VALID" % winner.object_hash)
-        winner.vote(terracoind, VoteSignals.valid, VoteOutcomes.yes)
+        winner.vote(zcored, VoteSignals.valid, VoteOutcomes.yes)
 
         # if remaining Watchdogs exist in the list, vote delete
         for wd in wd_list:
             printdbg("\tFound losing watchdog [%s], voting DELETE" % wd.object_hash)
-            wd.vote(terracoind, VoteSignals.delete, VoteOutcomes.yes)
+            wd.vote(zcored, VoteSignals.delete, VoteOutcomes.yes)
 
     printdbg("leaving watchdog_check")
 
 
-def prune_expired_proposals(terracoind):
+def prune_expired_proposals(zcored):
     # vote delete for old proposals
-    for proposal in Proposal.expired(terracoind.superblockcycle()):
-        proposal.vote(terracoind, VoteSignals.delete, VoteOutcomes.yes)
+    for proposal in Proposal.expired(zcored.superblockcycle()):
+        proposal.vote(zcored, VoteSignals.delete, VoteOutcomes.yes)
 
 
-# ping terracoind
-def sentinel_ping(terracoind):
+# ping zcored
+def sentinel_ping(zcored):
     printdbg("in sentinel_ping")
-
-    #terracoind.ping()
+    
+    # ping is not implemented yet
+    #zcored.ping()
 
     printdbg("leaving sentinel_ping")
 
 
-def attempt_superblock_creation(terracoind):
-    import terracoinlib
+def attempt_superblock_creation(zcored):
+    import zcorelib
 
-    if not terracoind.is_masternode():
+    if not zcored.is_masternode():
         print("We are not a Masternode... can't submit superblocks!")
         return
 
@@ -89,7 +90,7 @@ def attempt_superblock_creation(terracoind):
     # has this masternode voted on *any* superblocks at the given event_block_height?
     # have we voted FUNDING=YES for a superblock for this specific event_block_height?
 
-    event_block_height = terracoind.next_superblock_height()
+    event_block_height = zcored.next_superblock_height()
 
     if Superblock.is_voted_funding(event_block_height):
         # printdbg("ALREADY VOTED! 'til next time!")
@@ -97,20 +98,20 @@ def attempt_superblock_creation(terracoind):
         # vote down any new SBs because we've already chosen a winner
         for sb in Superblock.at_height(event_block_height):
             if not sb.voted_on(signal=VoteSignals.funding):
-                sb.vote(terracoind, VoteSignals.funding, VoteOutcomes.no)
+                sb.vote(zcored, VoteSignals.funding, VoteOutcomes.no)
 
         # now return, we're done
         return
 
-    if not terracoind.is_govobj_maturity_phase():
+    if not zcored.is_govobj_maturity_phase():
         printdbg("Not in maturity phase yet -- will not attempt Superblock")
         return
 
-    proposals = Proposal.approved_and_ranked(proposal_quorum=terracoind.governance_quorum(), next_superblock_max_budget=terracoind.next_superblock_max_budget())
-    budget_max = terracoind.get_superblock_budget_allocation(event_block_height)
-    sb_epoch_time = terracoind.block_height_to_epoch(event_block_height)
+    proposals = Proposal.approved_and_ranked(proposal_quorum=zcored.governance_quorum(), next_superblock_max_budget=zcored.next_superblock_max_budget())
+    budget_max = zcored.get_superblock_budget_allocation(event_block_height)
+    sb_epoch_time = zcored.block_height_to_epoch(event_block_height)
 
-    sb = terracoinlib.create_superblock(proposals, event_block_height, budget_max, sb_epoch_time)
+    sb = zcorelib.create_superblock(proposals, event_block_height, budget_max, sb_epoch_time)
     if not sb:
         printdbg("No superblock created, sorry. Returning.")
         return
@@ -118,12 +119,12 @@ def attempt_superblock_creation(terracoind):
     # find the deterministic SB w/highest object_hash in the DB
     dbrec = Superblock.find_highest_deterministic(sb.hex_hash())
     if dbrec:
-        dbrec.vote(terracoind, VoteSignals.funding, VoteOutcomes.yes)
+        dbrec.vote(zcored, VoteSignals.funding, VoteOutcomes.yes)
 
         # any other blocks which match the sb_hash are duplicates, delete them
         for sb in Superblock.select().where(Superblock.sb_hash == sb.hex_hash()):
             if not sb.voted_on(signal=VoteSignals.funding):
-                sb.vote(terracoind, VoteSignals.delete, VoteOutcomes.yes)
+                sb.vote(zcored, VoteSignals.delete, VoteOutcomes.yes)
 
         printdbg("VOTED FUNDING FOR SB! We're done here 'til next superblock cycle.")
         return
@@ -131,24 +132,24 @@ def attempt_superblock_creation(terracoind):
         printdbg("The correct superblock wasn't found on the network...")
 
     # if we are the elected masternode...
-    if (terracoind.we_are_the_winner()):
+    if (zcored.we_are_the_winner()):
         printdbg("we are the winner! Submit SB to network")
-        sb.submit(terracoind)
+        sb.submit(zcored)
 
 
-def check_object_validity(terracoind):
+def check_object_validity(zcored):
     # vote (in)valid objects
     for gov_class in [Proposal, Superblock]:
         for obj in gov_class.select():
-            obj.vote_validity(terracoind)
+            obj.vote_validity(zcored)
 
 
-def is_terracoind_port_open(terracoind):
+def is_zcored_port_open(zcored):
     # test socket open before beginning, display instructive message to MN
     # operators if it's not
     port_open = False
     try:
-        info = terracoind.rpc_command('getgovernanceinfo')
+        info = zcored.rpc_command('getgovernanceinfo')
         port_open = True
     except (socket.error, JSONRPCException) as e:
         print("%s" % e)
@@ -157,21 +158,21 @@ def is_terracoind_port_open(terracoind):
 
 
 def main():
-    terracoind = TerracoinDaemon.from_terracoin_conf(config.terracoin_conf)
+    zcored = ZCoreDaemon.from_zcore_conf(config.zcore_conf)
     options = process_args()
 
-    # check terracoind connectivity
-    if not is_terracoind_port_open(terracoind):
-        print("Cannot connect to terracoind. Please ensure terracoind is running and the JSONRPC port is open to Sentinel.")
+    # check zcored connectivity
+    if not is_zcored_port_open(zcored):
+        print("Cannot connect to zcored. Please ensure zcored is running and the JSONRPC port is open to Sentinel.")
         return
 
-    # check terracoind sync
-    if not terracoind.is_synced():
-        print("terracoind not synced with network! Awaiting full sync before running Sentinel.")
+    # check zcored sync
+    if not zcored.is_synced():
+        print("zcored not synced with network! Awaiting full sync before running Sentinel.")
         return
 
     # ensure valid masternode
-    if not terracoind.is_masternode():
+    if not zcored.is_masternode():
         print("Invalid Masternode Status, cannot continue.")
         return
 
@@ -203,23 +204,23 @@ def main():
     # ========================================================================
     #
     # load "gobject list" rpc command data, sync objects into internal database
-    perform_terracoind_object_sync(terracoind)
+    perform_zcored_object_sync(zcored)
 
-
-    if terracoind.has_sentinel_ping:
-        sentinel_ping(terracoind)
-    else:
-        # delete old watchdog objects, create a new if necessary
-        watchdog_check(terracoind)
+    #### DISABLED for now
+    #if zcored.has_sentinel_ping:
+    # sentinel_ping(zcored)
+    #else:
+    # delete old watchdog objects, create a new if necessary
+    #watchdog_check(zcored)
 
     # auto vote network objects as valid/invalid
-    # check_object_validity(terracoind)
+    # check_object_validity(zcored)
 
     # vote to delete expired proposals
-    prune_expired_proposals(terracoind)
+    prune_expired_proposals(zcored)
 
     # create a Superblock if necessary
-    attempt_superblock_creation(terracoind)
+    attempt_superblock_creation(zcored)
 
     # schedule the next run
     Scheduler.schedule_next_run()

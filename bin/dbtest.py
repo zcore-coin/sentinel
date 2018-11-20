@@ -9,17 +9,17 @@ import config
 from models import Superblock, Proposal, GovernanceObject, Setting, Signal, Vote, Outcome, Watchdog
 from models import VoteSignals, VoteOutcomes
 from peewee import PeeweeException  # , OperationalError, IntegrityError
-from terracoind import TerracoinDaemon
-import terracoinlib
+from zcored import ZCoreDaemon
+import zcored
 from decimal import Decimal
-terracoind = TerracoinDaemon.from_terracoin_conf(config.terracoin_conf)
+zcored = ZCoreDaemon.from_zcore_conf(config.zcore_conf)
 import misc
 # ==============================================================================
 # do stuff here
 
 pr = Proposal(
     name='proposal7',
-    url='https://terracoincentral.com/proposal7',
+    url='https://zcore.cash/',
     payment_address='yTC62huR4YQEPn9AJHjnQxxreHSbgAoatV',
     payment_amount=39.23,
     start_epoch=1483250400,
@@ -33,13 +33,13 @@ pr = Proposal(
 # )
 
 
-# TODO: make this a test, mock 'terracoind' and tie a test block height to a
+# TODO: make this a test, mock 'zcored' and tie a test block height to a
 # timestamp, ensure only unit testing a within_window method
 #
 # also, create the `within_window` or similar method & use that.
 #
 bh = 131112
-bh_epoch = terracoind.block_height_to_epoch(bh)
+bh_epoch = zcored.block_height_to_epoch(bh)
 
 fudge = 72000
 window_start = 1483689082 - fudge
@@ -56,7 +56,7 @@ else:
     print("Within window, we're good!")
 
 # pdb.set_trace()
-# terracoind.get_object_list()
+# zcored.get_object_list()
 # ==============================================================================
 # pdb.set_trace()
 1

@@ -57,23 +57,23 @@ def is_database_correctly_configured():
     return configured
 
 
-def has_terracoin_conf():
+def has_zcore_conf():
     import config
     import io
 
-    valid_terracoin_conf = False
+    valid_zcore_conf = False
 
-    # ensure terracoin_conf exists & readable
+    # ensure zcore_conf exists & readable
     #
-    # if not, print a message stating that Terracoin Core must be installed and
-    # configured, including JSONRPC access in terracoin.conf
+    # if not, print a message stating that ZCore Core must be installed and
+    # configured, including JSONRPC access in zcore.conf
     try:
-        f = io.open(config.terracoin_conf)
-        valid_terracoin_conf = True
+        f = io.open(config.zcore_conf)
+        valid_zcore_conf = True
     except IOError as e:
         print(e)
 
-    return valid_terracoin_conf
+    return valid_zcore_conf
 
 
 # === begin main
@@ -95,8 +95,8 @@ def main():
         print("Please ensure correct database configuration.")
         sys.exit(1)
 
-    if not has_terracoin_conf():
-        print("TerracoinCore must be installed and configured, including JSONRPC access in terracoin.conf")
+    if not has_zcore_conf():
+        print("ZCore must be installed and configured, including JSONRPC access in zcore.conf")
         sys.exit(1)
 
 

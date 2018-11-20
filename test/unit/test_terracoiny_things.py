@@ -6,12 +6,12 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), '../../
 
 
 @pytest.fixture
-def valid_terracoin_address(network='mainnet'):
+def valid_zcore_address(network='mainnet'):
     return 'mtHjXMx6dvTwgcvkDvsuWftiyNPi26RqDq' if (network == 'testnet') else '142So3onajFZfojruob5oqtxYT7SkU5Zcs'
 
 
 @pytest.fixture
-def invalid_terracoin_address(network='mainnet'):
+def invalid_zcore_address(network='mainnet'):
     return 'mtHjXMx6dvTwgcvkDvsuWftiyNPi26RqDr' if (network == 'testnet') else '142So3onajFZfojruob5oqtxYT7SkU5Zct'
 
 
@@ -61,34 +61,34 @@ def mn_status_bad():
 # ========================================================================
 
 
-def test_valid_terracoin_address():
-    from terracoinlib import is_valid_terracoin_address
+def test_valid_zcore_address():
+    from zcorelib import is_valid_zcore_address
 
-    main = valid_terracoin_address()
-    test = valid_terracoin_address('testnet')
+    main = valid_zcore_address()
+    test = valid_zcore_address('testnet')
 
-    assert is_valid_terracoin_address(main) is True
-    assert is_valid_terracoin_address(main, 'mainnet') is True
-    assert is_valid_terracoin_address(main, 'testnet') is False
+    assert is_valid_zcore_address(main) is True
+    assert is_valid_zcore_address(main, 'mainnet') is True
+    assert is_valid_zcore_address(main, 'testnet') is False
 
-    assert is_valid_terracoin_address(test) is False
-    assert is_valid_terracoin_address(test, 'mainnet') is False
-    assert is_valid_terracoin_address(test, 'testnet') is True
+    assert is_valid_zcore_address(test) is False
+    assert is_valid_zcore_address(test, 'mainnet') is False
+    assert is_valid_zcore_address(test, 'testnet') is True
 
 
-def test_invalid_terracoin_address():
-    from terracoinlib import is_valid_terracoin_address
+def test_invalid_zcore_address():
+    from zcorelib import is_valid_zcore_address
 
-    main = invalid_terracoin_address()
-    test = invalid_terracoin_address('testnet')
+    main = invalid_zcore_address()
+    test = invalid_zcore_address('testnet')
 
-    assert is_valid_terracoin_address(main) is False
-    assert is_valid_terracoin_address(main, 'mainnet') is False
-    assert is_valid_terracoin_address(main, 'testnet') is False
+    assert is_valid_zcore_address(main) is False
+    assert is_valid_zcore_address(main, 'mainnet') is False
+    assert is_valid_zcore_address(main, 'testnet') is False
 
-    assert is_valid_terracoin_address(test) is False
-    assert is_valid_terracoin_address(test, 'mainnet') is False
-    assert is_valid_terracoin_address(test, 'testnet') is False
+    assert is_valid_zcore_address(test) is False
+    assert is_valid_zcore_address(test, 'mainnet') is False
+    assert is_valid_zcore_address(test, 'testnet') is False
 
 
 def test_deterministic_masternode_elections(current_block_hash, mn_list):
@@ -100,7 +100,7 @@ def test_deterministic_masternode_elections(current_block_hash, mn_list):
 
 
 def test_deterministic_masternode_elections(current_block_hash, mn_list):
-    from terracoinlib import elect_mn
+    from zcorelib import elect_mn
 
     winner = elect_mn(block_hash=current_block_hash, mnlist=mn_list)
     assert winner == 'f68a2e5d64f4a9be7ff8d0fbd9059dcd3ce98ad7a19a9260d1d6709127ffac56-1'
@@ -110,7 +110,7 @@ def test_deterministic_masternode_elections(current_block_hash, mn_list):
 
 
 def test_parse_masternode_status_vin():
-    from terracoinlib import parse_masternode_status_vin
+    from zcorelib import parse_masternode_status_vin
     status = mn_status_good()
     vin = parse_masternode_status_vin(status['vin'])
     assert vin == 'f68a2e5d64f4a9be7ff8d0fbd9059dcd3ce98ad7a19a9260d1d6709127ffac56-1'
@@ -121,20 +121,20 @@ def test_parse_masternode_status_vin():
 
 
 def test_hash_function():
-    import terracoinlib
+    import zcorelib
     sb_data_hex = '5b227375706572626c6f636b222c207b226576656e745f626c6f636b5f686569676874223a2037323639362c20227061796d656e745f616464726573736573223a2022795965384b77796155753559737753596d42337133727978385854557539793755697c795965384b77796155753559737753596d4233713372797838585455753979375569222c20227061796d656e745f616d6f756e7473223a202232352e37353030303030307c32352e3735303030303030227d5d'
     sb_hash = '5c7c28ddec8c1ad54b49f6f1e79369e7ccaf76f5ddc30e502569d674e458ccf3'
 
-    hex_hash = "%x" % terracoinlib.hashit(sb_data_hex)
+    hex_hash = "%x" % zcorelib.hashit(sb_data_hex)
     assert hex_hash == sb_hash
 
 
 def test_blocks_to_seconds():
-    import terracoinlib
+    import zcorelib
     from decimal import Decimal
 
     precision = Decimal('0.001')
-    assert Decimal(terracoinlib.blocks_to_seconds(0)) == Decimal(0.0)
-    assert Decimal(terracoinlib.blocks_to_seconds(2)).quantize(precision) \
+    assert Decimal(zcorelib.blocks_to_seconds(0)) == Decimal(0.0)
+    assert Decimal(zcorelib.blocks_to_seconds(2)).quantize(precision) \
         == Decimal(254.4).quantize(precision)
-    assert int(terracoinlib.blocks_to_seconds(16616)) == 2113555
+    assert int(zcorelib.blocks_to_seconds(16616)) == 2113555

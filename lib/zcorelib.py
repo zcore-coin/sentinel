@@ -12,14 +12,14 @@ from misc import printdbg, epoch2str
 import time
 
 
-def is_valid_terracoin_address(address, network='mainnet'):
+def is_valid_zcore_address(address, network='mainnet'):
     # Only public key addresses are allowed
     # A valid address is a RIPEMD-160 hash which contains 20 bytes
     # Prior to base58 encoding 1 version byte is prepended and
     # 4 checksum bytes are appended so the total number of
     # base58 encoded bytes should be 25.  This means the number of characters
     # in the encoding should be about 34 ( 25 * log2( 256 ) / log2( 58 ) ).
-    terracoin_version = 112 if network == 'testnet' else 80
+    zcore_version = 112 if network == 'testnet' else 80
 
     # Check length (This is important because the base58 library has problems
     # with long addresses (which are invalid anyway).
@@ -32,10 +32,10 @@ def is_valid_terracoin_address(address, network='mainnet'):
         decoded = base58.b58decode_chk(address)
         address_version = ord(decoded[0:1])
     except:
-        # rescue from exception, not a valid Terracoin address
+        # rescue from exception, not a valid ZCore address
         return False
 
-    if (address_version != terracoin_version):
+    if (address_version != zcore_version):
         return False
 
     return True
@@ -179,45 +179,45 @@ def create_superblock(proposals, event_block_height, budget_max, sb_epoch_time):
     return sb
 
 
-# shims 'til we can fix the terracoind side
-def SHIM_serialise_for_terracoind(sentinel_hex):
-    from models import TERRACOIND_GOVOBJ_TYPES
+# shims 'til we can fix the zcored side
+def SHIM_serialise_for_zcored(sentinel_hex):
+    from models import ZCORED_GOVOBJ_TYPES
     # unpack
     obj = deserialise(sentinel_hex)
 
-    # shim for terracoind
+    # shim for zcored
     govtype = obj[0]
 
     # add 'type' attribute
-    obj[1]['type'] = TERRACOIND_GOVOBJ_TYPES[govtype]
+    obj[1]['type'] = ZCORED_GOVOBJ_TYPES[govtype]
 
-    # superblock => "trigger" in terracoind
+    # superblock => "trigger" in zcored
     if govtype == 'superblock':
         obj[0] = 'trigger'
 
-    # terracoind expects an array (even though there is only a 1:1 relationship between govobj->class)
+    # zcored expects an array (even though there is only a 1:1 relationship between govobj->class)
     obj = [obj]
 
     # re-pack
-    terracoind_hex = serialise(obj)
-    return terracoind_hex
+    zcored_hex = serialise(obj)
+    return zcored_hex
 
 
-# shims 'til we can fix the terracoind side
-def SHIM_deserialise_from_terracoind(terracoind_hex):
-    from models import TERRACOIND_GOVOBJ_TYPES
+# shims 'til we can fix the zcored side
+def SHIM_deserialise_from_zcored(zcored_hex):
+    from models import ZCORED_GOVOBJ_TYPES
 
     # unpack
-    obj = deserialise(terracoind_hex)
+    obj = deserialise(zcored_hex)
 
-    # shim from terracoind
+    # shim from zcored
     # only one element in the array...
     obj = obj[0]
 
     # extract the govobj type
     govtype = obj[0]
 
-    # superblock => "trigger" in terracoind
+    # superblock => "trigger" in zcored
     if govtype == 'trigger':
         obj[0] = govtype = 'superblock'
 

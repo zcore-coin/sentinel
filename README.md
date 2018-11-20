@@ -51,7 +51,7 @@ If you followed a guide where it had you install ZCore to the root directory you
 
 An alternative (non-default) path to the `zcore.conf` file can be specified in `sentinel.conf`:
 
-    terracoin_conf=/path/to/zcore.conf
+    zcore_conf=/path/to/zcore.conf
 
 ## Troubleshooting
 

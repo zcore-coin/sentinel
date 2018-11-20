@@ -3,30 +3,30 @@
 """
 import sys
 import os
-from terracoin_config import TerracoinConfig
+from zcore_config import ZCoreConfig
 
 default_sentinel_config = os.path.normpath(
     os.path.join(os.path.dirname(__file__), '../sentinel.conf')
 )
 sentinel_config_file = os.environ.get('SENTINEL_CONFIG', default_sentinel_config)
-sentinel_cfg = TerracoinConfig.tokenize(sentinel_config_file)
+sentinel_cfg = ZCoreConfig.tokenize(sentinel_config_file)
 sentinel_version = "1.1.0"
-min_terracoind_proto_version_with_sentinel_ping = 70208
+min_zcored_proto_version_with_sentinel_ping = 70208
 
 
-def get_terracoin_conf():
+def get_zcore_conf():
     home = os.environ.get('HOME')
 
-    terracoin_conf = "/etc/zcore/zcore.conf"
-    if (not os.path.isfile(terracoin_conf)):
-        terracoin_conf = os.path.join(home, ".zcore/zcore.conf")
+    zcore_conf = "/etc/zcore/zcore.conf"
+    if (not os.path.isfile(zcore_conf)):
+        zcore_conf = os.path.join(home, ".zcore/zcore.conf")
 
     if sys.platform == 'darwin':
-        terracoin_conf = os.path.join(home, "Library/Application Support/ZCore/zcore.conf")
+        zcore_conf = os.path.join(home, "Library/Application Support/ZCore/zcore.conf")
 
-    terracoin_conf = sentinel_cfg.get('terracoin_conf', terracoin_conf)
+    zcore_conf = sentinel_cfg.get('zcore_conf', zcore_conf)
 
-    return terracoin_conf
+    return zcore_conf
 
 
 def get_network():
@@ -82,6 +82,6 @@ def get_db_conn():
     return db
 
 
-terracoin_conf = get_terracoin_conf()
+zcore_conf = get_zcore_conf()
 network = get_network()
 db = get_db_conn()
